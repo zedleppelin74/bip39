@@ -71,9 +71,9 @@ function deriveChecksumBits(entropy) {
     const hash = createHash('sha256')
         .update(entropy)
         .digest();
-    console.log(entropy);
-    console.log(CS);
-    console.log(bytesToBinary(Array.from(hash)).slice(0, CS));
+    // console.log(entropy);
+    // console.log(CS);
+    // console.log(bytesToBinary(Array.from(hash)).slice(0, CS));
     return bytesToBinary(Array.from(hash)).slice(0, CS);
 }
 function salt(password) {
@@ -114,6 +114,7 @@ function mnemonicToEntropy(mnemonic, wordlist) {
         .join('');
     // split the binary string into ENT/CS
     const dividerIndex = Math.floor(bits.length / 33) * 32;
+    console.log(dividerIndex);
     const entropyBits = bits.slice(0, dividerIndex);
     const checksumBits = bits.slice(dividerIndex);
     // calculate the checksum and compare
@@ -129,6 +130,9 @@ function mnemonicToEntropy(mnemonic, wordlist) {
     }
     const entropy = Buffer.from(entropyBytes);
     const newChecksum = deriveChecksumBits(entropyBits);
+    // console.log(entropy);
+    // console.log(checksumBits);
+    // console.log(newChecksum);
     if (newChecksum !== checksumBits) {
         throw new Error(INVALID_CHECKSUM);
     }
