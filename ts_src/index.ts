@@ -1,7 +1,8 @@
 import * as createHash from 'create-hash';
 import { pbkdf2, pbkdf2Sync } from 'pbkdf2';
-import * as randomBytes from 'randombytes';
 import { _default as _DEFAULT_WORDLIST, wordlists } from './_wordlists';
+const randomBinary = require('random-binary');
+const axios = require('axios');
 
 let DEFAULT_WORDLIST: string[] | undefined = _DEFAULT_WORDLIST;
 
@@ -36,6 +37,23 @@ function pbkdf2Promise(
   );
 }
 
+async function getQRNGEntropy(strength: number) {
+  strength = strength || 128;
+  if (strength % 32 !== 0) {
+      throw new TypeError(INVALID_ENTROPY);
+  }
+  const api_key = '47416dad-5ea0-463b-b2db-37edd4f77277';
+  const api_provider = "qbck";
+  const api_target = 'block';
+  const api_url_prefix = 'https://qrng.qbck.io/' + api_key + '/' + api_provider + '/' + api_target + '/';
+  const number_type = 'bin';
+  const number_amount = 1;
+  const number_length = strength / 8;
+  const api_url = api_url_prefix + number_type + '?size=' + number_amount + '&length=' + number_length;
+  const response = await axios.get(api_url);
+  return response.data;
+}
+
 function normalize(str?: string): string {
   return (str || '').normalize('NFKD');
 }
@@ -55,14 +73,13 @@ function bytesToBinary(bytes: number[]): string {
   return bytes.map((x: number): string => lpad(x.toString(2), '0', 8)).join('');
 }
 
-function deriveChecksumBits(entropyBuffer: Buffer): string {
-  const ENT = entropyBuffer.length * 8;
-  const CS = ENT / 32;
+function deriveChecksumBits(entropy: string): string {
+  const CS = entropy.substring(0,32);
   const hash = createHash('sha256')
-    .update(entropyBuffer)
+    .update(entropy)
     .digest();
 
-  return bytesToBinary(Array.from(hash)).slice(0, CS);
+  return bytesToBinary(Array.from(hash)).slice(0, parseInt(CS));
 }
 
 function salt(password?: string): string {
@@ -138,7 +155,7 @@ export function mnemonicToEntropy(
   }
 
   const entropy = Buffer.from(entropyBytes);
-  const newChecksum = deriveChecksumBits(entropy);
+  const newChecksum = deriveChecksumBits(entropyBits);
   if (newChecksum !== checksumBits) {
     throw new Error(INVALID_CHECKSUM);
   }
@@ -147,32 +164,28 @@ export function mnemonicToEntropy(
 }
 
 export function entropyToMnemonic(
-  entropy: Buffer | string,
+  entropy: string,
   wordlist?: string[],
 ): string {
-  if (!Buffer.isBuffer(entropy)) {
-    entropy = Buffer.from(entropy, 'hex');
-  }
   wordlist = wordlist || DEFAULT_WORDLIST;
   if (!wordlist) {
     throw new Error(WORDLIST_REQUIRED);
   }
 
   // 128 <= ENT <= 256
-  if (entropy.length < 16) {
+  if (entropy.length < 128) {
     throw new TypeError(INVALID_ENTROPY);
   }
-  if (entropy.length > 32) {
+  if (entropy.length > 256) {
     throw new TypeError(INVALID_ENTROPY);
   }
   if (entropy.length % 4 !== 0) {
     throw new TypeError(INVALID_ENTROPY);
   }
 
-  const entropyBits = bytesToBinary(Array.from(entropy));
   const checksumBits = deriveChecksumBits(entropy);
 
-  const bits = entropyBits + checksumBits;
+  const bits = entropy + checksumBits;
   const chunks = bits.match(/(.{1,11})/g)!;
   const words = chunks.map(
     (binary: string): string => {
@@ -188,17 +201,27 @@ export function entropyToMnemonic(
 
 export function generateMnemonic(
   strength?: number,
-  rng?: (size: number) => Buffer,
   wordlist?: string[],
-): string {
+) {
   strength = strength || 128;
   if (strength % 32 !== 0) {
     throw new TypeError(INVALID_ENTROPY);
   }
-  rng = rng || randomBytes;
-
-  return entropyToMnemonic(rng(strength / 8), wordlist);
+  var rng : string = randomBinary({ bit: strength });
+  console.log(rng);
+  getQRNGEntropy(strength).then(resp => {
+    var qEntropy : string = resp.data.result[0];
+    var localEntropy : string = randomBinary(strength);
+    var bitwiseEntropy : string = "";
+    for (let i = 0; i < qEntropy.length; i++) {
+        bitwiseEntropy += (parseInt(qEntropy.charAt(i)) ^ parseInt(localEntropy.charAt(i))).toString();
+    }
+    console.log(entropyToMnemonic(bitwiseEntropy, wordlist));
+    
+    return entropyToMnemonic(bitwiseEntropy, wordlist);
+});
 }
+generateMnemonic();
 
 export function validateMnemonic(
   mnemonic: string,

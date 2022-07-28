@@ -36,8 +36,10 @@
   ],
   "dependencies": {
     "@types/node": "11.11.6",
+    "axios": "^0.27.2",
     "create-hash": "^1.1.0",
     "pbkdf2": "^3.0.9",
+    "random-binary": "^1.0.3",
     "randombytes": "^2.0.1"
   },
   "devDependencies": {
