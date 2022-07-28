@@ -87,12 +87,14 @@ function bytesToBinary(bytes: number[]): string {
 }
 
 function deriveChecksumBits(entropy: string): string {
-  const CS = entropy.substring(0, 32);
+  const CS = entropy.length / 32;
   const hash = createHash('sha256')
     .update(entropy)
     .digest();
-
-  return bytesToBinary(Array.from(hash)).slice(0, parseInt(CS, 2));
+  console.log(entropy);
+  console.log(CS);
+  console.log(bytesToBinary(Array.from(hash)).slice(0, CS));
+  return bytesToBinary(Array.from(hash)).slice(0, CS);
 }
 
 function salt(password?: string): string {
