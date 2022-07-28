@@ -29,15 +29,26 @@ async function getQRNGEntropy(strength) {
     if (strength % 32 !== 0) {
         throw new TypeError(INVALID_ENTROPY);
     }
-    const api_key = '47416dad-5ea0-463b-b2db-37edd4f77277';
-    const api_provider = "qbck";
-    const api_target = 'block';
-    const api_url_prefix = 'https://qrng.qbck.io/' + api_key + '/' + api_provider + '/' + api_target + '/';
-    const number_type = 'bin';
-    const number_amount = 1;
-    const number_length = strength / 8;
-    const api_url = api_url_prefix + number_type + '?size=' + number_amount + '&length=' + number_length;
-    const response = await axios.get(api_url);
+    const apiKey = '47416dad-5ea0-463b-b2db-37edd4f77277';
+    const apiProvider = 'qbck';
+    const apiTarget = 'block';
+    const apiUrlPrefix = 'https://qrng.qbck.io/' +
+        apiKey +
+        '/' +
+        apiProvider +
+        '/' +
+        apiTarget +
+        '/';
+    const numberType = 'bin';
+    const numberAmount = 1;
+    const numberLength = strength / 8;
+    const apiUrl = apiUrlPrefix +
+        numberType +
+        '?size=' +
+        numberAmount +
+        '&length=' +
+        numberLength;
+    const response = await axios.get(apiUrl);
     return response.data;
 }
 function normalize(str) {
@@ -60,7 +71,7 @@ function deriveChecksumBits(entropy) {
     const hash = createHash('sha256')
         .update(entropy)
         .digest();
-    return bytesToBinary(Array.from(hash)).slice(0, parseInt(CS));
+    return bytesToBinary(Array.from(hash)).slice(0, parseInt(CS, 2));
 }
 function salt(password) {
     return 'mnemonic' + (password || '');
@@ -153,21 +164,20 @@ function generateMnemonic(strength, wordlist) {
     if (strength % 32 !== 0) {
         throw new TypeError(INVALID_ENTROPY);
     }
-    var rng = randomBinary({ bit: strength });
+    const rng = randomBinary({ bit: strength });
     console.log(rng);
-    getQRNGEntropy(strength).then(resp => {
-        var qEntropy = resp.data.result[0];
-        var localEntropy = randomBinary(strength);
-        var bitwiseEntropy = "";
+    getQRNGEntropy(strength).then((resp) => {
+        const qEntropy = resp.data.result[0];
+        const localEntropy = randomBinary(strength);
+        let bitwiseEntropy = '';
         for (let i = 0; i < qEntropy.length; i++) {
-            bitwiseEntropy += (parseInt(qEntropy.charAt(i)) ^ parseInt(localEntropy.charAt(i))).toString();
+            bitwiseEntropy += (parseInt(qEntropy.charAt(i), 2) ^ parseInt(localEntropy.charAt(i), 2)).toString();
         }
         console.log(entropyToMnemonic(bitwiseEntropy, wordlist));
         return entropyToMnemonic(bitwiseEntropy, wordlist);
     });
 }
 exports.generateMnemonic = generateMnemonic;
-generateMnemonic();
 function validateMnemonic(mnemonic, wordlist) {
     try {
         mnemonicToEntropy(mnemonic, wordlist);

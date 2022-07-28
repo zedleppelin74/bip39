@@ -3,7 +3,7 @@ export declare function mnemonicToSeedSync(mnemonic: string, password?: string):
 export declare function mnemonicToSeed(mnemonic: string, password?: string): Promise<Buffer>;
 export declare function mnemonicToEntropy(mnemonic: string, wordlist?: string[]): string;
 export declare function entropyToMnemonic(entropy: string, wordlist?: string[]): string;
-export declare function generateMnemonic(strength?: number, wordlist?: string[]): void;
+export declare function generateMnemonic(strength?: number, wordlist?: string[]): any;
 export declare function validateMnemonic(mnemonic: string, wordlist?: string[]): boolean;
 export declare function setDefaultWordlist(language: string): void;
 export declare function getDefaultWordlist(): string;
